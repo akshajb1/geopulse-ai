@@ -1,0 +1,213 @@
+﻿.\gradlew : 
+At line:1 char:13
++ cd android; 
+.\gradlew 
+app:assembleDebug > 
+build.log 2>&1
++             ~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (:String) [],    
+ RemoteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+FAILURE: Build failed 
+with an exception.
+
+* What went wrong:
+A problem occurred 
+configuring root 
+project 'TempApp'.
+> Could not determine 
+the dependencies of 
+null.
+   > Could not resolve 
+all task dependencies 
+for configuration 
+':classpath'.
+      > Could not find 
+com.android.tools.build
+:gradle:.
+        Required by:
+            project :
+      > Could not 
+resolve com.facebook.re
+act:react-native-gradle
+-plugin.
+        Required by:
+            project :
+         > No matching 
+variant of project 
+:gradle-plugin was 
+found. The consumer 
+was configured to find 
+a library for use 
+during runtime, 
+compatible with Java 
+8, packaged as a jar, 
+and its dependencies 
+declared externally, 
+as well as attribute 'o
+rg.gradle.plugin.api-ve
+rsion' with value 
+'8.3' but:
+             - Variant 
+'apiElements' 
+capability com.facebook
+.react:react-native-gra
+dle-plugin:unspecified 
+declares a library, 
+packaged as a jar, and 
+its dependencies 
+declared externally:
+                 - 
+Incompatible because 
+this component 
+declares a component 
+for use during 
+compile-time, 
+compatible with Java 
+11 and the consumer 
+needed a component for 
+use during runtime, 
+compatible with Java 8
+                 - 
+Other compatible 
+attribute:
+                     - 
+Doesn't say anything 
+about org.gradle.plugin
+.api-version (required 
+'8.3')
+             - Variant 
+'mainSourceElements' 
+capability com.facebook
+.react:react-native-gra
+dle-plugin:unspecified 
+declares a component, 
+and its dependencies 
+declared externally:
+                 - 
+Incompatible because 
+this component 
+declares a component 
+of category 
+'verification' and the 
+consumer needed a 
+library
+                 - 
+Other compatible 
+attributes:
+                     - 
+Doesn't say anything 
+about its target Java 
+version (required 
+compatibility with 
+Java 8)
+                     - 
+Doesn't say anything 
+about its elements 
+(required them 
+packaged as a jar)
+                     - 
+Doesn't say anything 
+about org.gradle.plugin
+.api-version (required 
+'8.3')
+                     - 
+Doesn't say anything 
+about its usage 
+(required runtime)
+             - Variant 
+'runtimeElements' 
+capability com.facebook
+.react:react-native-gra
+dle-plugin:unspecified 
+declares a library for 
+use during runtime, 
+packaged as a jar, and 
+its dependencies 
+declared externally:
+                 - 
+Incompatible because 
+this component 
+declares a component, 
+compatible with Java 
+11 and the consumer 
+needed a component, 
+compatible with Java 8
+                 - 
+Other compatible 
+attribute:
+                     - 
+Doesn't say anything 
+about org.gradle.plugin
+.api-version (required 
+'8.3')
+             - Variant 
+'testResultsElementsFor
+Test' capability com.fa
+cebook.react:react-nati
+ve-gradle-plugin:unspec
+ified:
+                 - 
+Incompatible because 
+this component 
+declares a component 
+of category 
+'verification' and the 
+consumer needed a 
+library
+                 - 
+Other compatible 
+attributes:
+                     - 
+Doesn't say anything 
+about how its 
+dependencies are found 
+(required its 
+dependencies declared 
+externally)
+                     - 
+Doesn't say anything 
+about its target Java 
+version (required 
+compatibility with 
+Java 8)
+                     - 
+Doesn't say anything 
+about its elements 
+(required them 
+packaged as a jar)
+                     - 
+Doesn't say anything 
+about org.gradle.plugin
+.api-version (required 
+'8.3')
+                     - 
+Doesn't say anything 
+about its usage 
+(required runtime)
+      > Could not find 
+org.jetbrains.kotlin:ko
+tlin-gradle-plugin:.
+        Required by:
+            project :
+
+* Try:
+> Run with 
+--stacktrace option to 
+get the stack trace.
+> Run with --info or 
+--debug option to get 
+more log output.
+> Run with --scan to 
+get full insights.
+> Get more help at http
+s://help.gradle.org.
+
+BUILD FAILED in 7s

@@ -1,0 +1,77 @@
+﻿Directory 'C:\Program Files\Java\jdk1.8.0_291' (Windows Registry) used for java installations does not exist
+Directory 'C:\Program Files\Java\jre1.8.0_291' (Windows Registry) used for java installations does not exist
+Directory 'C:\Program Files\Java\jdk1.8.0_291' (Windows Registry) used for java installations does not exist
+Directory 'C:\Program Files\Java\jre1.8.0_291' (Windows Registry) used for java installations does not exist
+> Task :gradle-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:jar UP-TO-DATE
+> Task :gradle-plugin:inspectClassesForKotlinIC UP-TO-DATE
+
+> Configure project :react-native-reanimated
+Android gradle plugin: 8.1.1
+Gradle: 8.3
+.\gradlew : 
+At line:1 char:120
++ ...  $env:Path; cd 
+android; .\gradlew 
+app:assembleDebug > 
+build2.log 2>&1
++                      
+       ~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (:String) [],    
+ RemoteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+FAILURE: Build failed 
+with an exception.
+
+* What went wrong:
+A problem occurred 
+configuring project ':r
+eact-native-reanimated'
+.
+> com.android.builder.e
+rrors.EvalIssueExceptio
+n: SDK location not 
+found. Define a valid 
+SDK location with an 
+ANDROID_HOME 
+environment variable 
+or by setting the 
+sdk.dir path in your 
+project's local 
+properties file at 'C:\
+Users\ASUS\.gemini\anti
+gravity\scratch\geopuls
+e-ai\mobile\android\loc
+al.properties'.
+
+* Try:
+> Run with 
+--stacktrace option to 
+get the stack trace.
+> Run with --info or 
+--debug option to get 
+more log output.
+> Run with --scan to 
+get full insights.
+> Get more help at http
+s://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+5 actionable tasks: 5 up-to-date
+BUILD FAILED in 15s

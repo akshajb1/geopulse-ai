@@ -1,0 +1,51 @@
+Traceback (most recent call last):
+  File "C:\Users\ASUS\.gemini\antigravity\scratch\geopulse-ai\backend\venv\Lib\site-packages\pydantic\_internal\_typing_extra.py", line 455, in eval_type_backport
+    return _eval_type_backport(value, globalns, localns, type_params)
+  File "C:\Users\ASUS\.gemini\antigravity\scratch\geopulse-ai\backend\venv\Lib\site-packages\pydantic\_internal\_typing_extra.py", line 492, in _eval_type_backport
+    return _eval_type(value, globalns, localns, type_params)
+  File "C:\Users\ASUS\.gemini\antigravity\scratch\geopulse-ai\backend\venv\Lib\site-packages\pydantic\_internal\_typing_extra.py", line 524, in _eval_type
+    evaluated = typing._eval_type(  # type: ignore
+        value,
+    ...<9 lines>...
+        prefer_fwd_module=True,
+    )
+TypeError: _eval_type() got an unexpected keyword argument 'prefer_fwd_module'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import traceback, sys; f=open('trace2.log','w'); sys.stderr=f; import main; f.close()
+                                                                   ^^^^^^^^^^^
+  File "C:\Users\ASUS\.gemini\antigravity\scratch\geopulse-ai\backend\main.py", line 13, in <module>
+    from fastapi import FastAPI, Depends, HTTPException, Query, BackgroundTasks
+  File "C:\Users\ASUS\.gemini\antigravity\scratch\geopulse-ai\backend\venv\Lib\site-packages\fastapi\__init__.py", line 7, in <module>
+    from .applications import FastAPI as FastAPI
+  File "C:\Users\ASUS\.gemini\antigravity\scratch\geopulse-ai\backend\venv\Lib\site-packages\fastapi\applications.py", line 10, in <module>
+    from fastapi import routing
+  File "C:\Users\ASUS\.gemini\antigravity\scratch\geopulse-ai\backend\venv\Lib\site-packages\fastapi\routing.py", line 34, in <module>
+    from fastapi import params
+  File "C:\Users\ASUS\.gemini\antigravity\scratch\geopulse-ai\backend\venv\Lib\site-packages\fastapi\params.py", line 8, in <module>
+    from fastapi.openapi.models import Example
+  File "C:\Users\ASUS\.gemini\antigravity\scratch\geopulse-ai\backend\venv\Lib\site-packages\fastapi\openapi\models.py", line 61, in <module>
+    class Contact(BaseModelWithConfig):
+    ...<2 lines>...
+        email: EmailStr | None = None
+  File "C:\Users\ASUS\.gemini\antigravity\scratch\geopulse-ai\backend\venv\Lib\site-packages\pydantic\_internal\_model_construction.py", line 242, in __new__
+    set_model_fields(cls, config_wrapper=config_wrapper, ns_resolver=ns_resolver)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ASUS\.gemini\antigravity\scratch\geopulse-ai\backend\venv\Lib\site-packages\pydantic\_internal\_model_construction.py", line 566, in set_model_fields
+    fields, class_vars = collect_model_fields(cls, config_wrapper, ns_resolver, typevars_map=typevars_map)
+                         ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ASUS\.gemini\antigravity\scratch\geopulse-ai\backend\venv\Lib\site-packages\pydantic\_internal\_fields.py", line 256, in collect_model_fields
+    type_hints = _typing_extra.get_model_type_hints(cls, ns_resolver=ns_resolver)
+  File "C:\Users\ASUS\.gemini\antigravity\scratch\geopulse-ai\backend\venv\Lib\site-packages\pydantic\_internal\_typing_extra.py", line 350, in get_model_type_hints
+    hints[name] = try_eval_type(value, globalns, localns)
+                  ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ASUS\.gemini\antigravity\scratch\geopulse-ai\backend\venv\Lib\site-packages\pydantic\_internal\_typing_extra.py", line 404, in try_eval_type
+    return eval_type_backport(value, globalns, localns), True
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ASUS\.gemini\antigravity\scratch\geopulse-ai\backend\venv\Lib\site-packages\pydantic\_internal\_typing_extra.py", line 462, in eval_type_backport
+    assert isinstance(value, typing.ForwardRef)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
