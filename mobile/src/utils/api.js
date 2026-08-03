@@ -8,10 +8,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Platform } from 'react-native';
 
-// Mac's LAN IP works from BOTH the iOS simulator and a physical iPhone on the same Wi-Fi.
-// (localhost on a real device means the phone itself, not your Mac.) Android emulator → 10.0.2.2.
-// TODO: replace with the deployed backend HTTPS URL before App Store submission.
-const BASE_URL = Platform.OS === 'ios' ? 'http://192.168.86.223:8000' : 'http://10.0.2.2:8000';
+// Production backend (deployed on Render). HTTPS, reachable from anywhere —
+// no Mac / Wi-Fi dependency. This is what ships to the App Store.
+const BASE_URL = 'https://geopulse-api-y9gt.onrender.com';
 
 const api = axios.create({
   baseURL: BASE_URL,

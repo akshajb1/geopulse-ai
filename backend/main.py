@@ -12,6 +12,7 @@ from typing import List, Optional
 import httpx
 from fastapi import FastAPI, Depends, HTTPException, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
@@ -189,6 +190,52 @@ def upsert_place(db: Session, raw: dict, category: str) -> Place:
 @app.get("/", tags=["Health"])
 def health_check():
     return {"status": "ok", "service": "GeoPulse AI API", "version": "1.0.0"}
+
+
+@app.get("/privacy", response_class=HTMLResponse, tags=["Legal"])
+def privacy_policy():
+    """Public privacy policy — required for the App Store listing."""
+    return """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeoPulse AI — Privacy Policy</title>
+<style>body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+max-width:720px;margin:40px auto;padding:0 20px;line-height:1.6;color:#1a1a1a}
+h1{font-size:1.7rem}h2{font-size:1.15rem;margin-top:1.6em}small{color:#666}</style></head>
+<body>
+<h1>GeoPulse AI — Privacy Policy</h1>
+<small>Last updated: August 3, 2026</small>
+
+<p>GeoPulse AI ("we", "the app") helps you discover places nearby that match your
+interests. This policy explains what we collect and why. We do not sell your data.</p>
+
+<h2>Information we collect</h2>
+<ul>
+<li><strong>Approximate location</strong> — your device's GPS coordinates, used only to find and rank places near you. Collected while you use the app.</li>
+<li><strong>A device identifier</strong> — a random ID generated on your device to save your profile. It is not your name, email, or Apple ID.</li>
+<li><strong>Your interests</strong> — the categories you choose during setup, and an optional name you enter.</li>
+<li><strong>Your interactions</strong> — places you view, save, or visit, used to improve your recommendations.</li>
+</ul>
+
+<h2>How we use it</h2>
+<p>Your location and interests are used to fetch nearby places and generate personalized
+recommendations. Your interactions train the recommendation model so suggestions get better over time.</p>
+
+<h2>Third parties</h2>
+<p>To find places, your coordinates are sent to the <strong>Google Places API</strong> and are
+subject to <a href="https://policies.google.com/privacy">Google's Privacy Policy</a>.
+We do not share your data with advertisers.</p>
+
+<h2>Data retention &amp; security</h2>
+<p>Your profile and interactions are stored on our secure backend and kept until you request
+deletion. To delete your data, contact us at the email below.</p>
+
+<h2>Children</h2>
+<p>GeoPulse AI is not directed to children under 13 and we do not knowingly collect their data.</p>
+
+<h2>Contact</h2>
+<p>Questions or deletion requests: <a href="mailto:columbacreations1@gmail.com">columbacreations1@gmail.com</a></p>
+</body></html>"""
 
 
 # ---------------------------------------------------------------------------- #
