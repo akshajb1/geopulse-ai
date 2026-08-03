@@ -39,6 +39,9 @@ N_CLUSTERS      = 5   # KMeans clusters
 TOP_K           = 5   # Top recommendations to return
 MIN_INTERACTIONS = 2  # Minimum interactions before ML kicks in
 
+# How strongly each action signals (dis)interest in a place's category.
+ACTION_WEIGHTS = {"visit": 3.0, "save": 2.0, "click": 1.0, "dismiss": -1.0}
+
 
 # ── Haversine distance (km) ────────────────────────────────────────────────────
 
@@ -94,116 +97,127 @@ def _build_user_features(users: List[User], interactions: List[Interaction], pla
 
 def get_recommendations(user_id: int, db: Session, latitude: float = None, longitude: float = None, top_k: int = TOP_K) -> List[Dict[str, Any]]:
     """
-    Return top-K recommended Place objects for the given user.
-    Falls back to interest-filtered popular places when data is sparse.
-    Filters result to 50-mile radius if coordinates are provided.
-    """
-    users   = db.query(User).all()
-    places  = db.query(Place).all()
-    interactions = db.query(Interaction).all()
+    Return top-K recommended places for the given user, ranked by how well each
+    place matches the user's *own demonstrated tastes*.
 
-    if not users or not interactions:
-        logger.info("Insufficient data – returning empty recommendations.")
-        return []
+    Signal, in priority order:
+      1. Content-based category affinity — the user's onboarding interests plus
+         the weighted actions they've taken (visit/save/click/dismiss) tell us
+         which categories they actually engage with.
+      2. Collaborative boost — when other users exist, KMeans clusters like-minded
+         users and boosts places their cluster-mates liked.
+      3. Place quality — Google rating as a tie-breaker.
+
+    Already-visited places are excluded (this is a discovery feed). Results are
+    limited to a 50-mile radius when coordinates are provided. Each result carries
+    a 0–100 ``match_score`` reflecting the affinity above.
+    """
+    users        = db.query(User).all()
+    places       = db.query(Place).all()
+    interactions = db.query(Interaction).all()
 
     target_user = db.query(User).filter(User.id == user_id).first()
     if not target_user:
         return []
 
-    # ── Build feature matrix ─────────────────────────────────────
-    feature_df = _build_user_features(users, interactions, places)
-
-    if feature_df.shape[0] < 2:
-        return _fallback_recommendations(target_user, places, interactions, latitude, longitude, top_k)
-
-    # ── KMeans clustering ────────────────────────────────────────
-    n_clusters = min(N_CLUSTERS, feature_df.shape[0])
-    kmeans     = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-    labels     = kmeans.fit_predict(feature_df.values)
-
-    user_index_map = {uid: idx for idx, uid in enumerate(feature_df.index)}
-    if user_id not in user_index_map:
-        return _fallback_recommendations(target_user, places, interactions, latitude, longitude, top_k)
-
-    target_label    = labels[user_index_map[user_id]]
-    cluster_user_ids = [
-        list(feature_df.index)[i]
-        for i, lbl in enumerate(labels)
-        if lbl == target_label and list(feature_df.index)[i] != user_id
-    ]
-
-    # ── Collect cluster interactions ─────────────────────────────
-    place_score: Dict[int, float] = {}
-    for inter in interactions:
-        if inter.user_id in cluster_user_ids:
-            weight = {"visit": 3.0, "save": 2.0, "click": 1.0, "dismiss": -1.0}.get(inter.action_type, 1.0)
-            place_score[inter.place_id] = place_score.get(inter.place_id, 0.0) + weight
-
-    # Penalise places the user already interacted with
-    already_seen = {i.place_id for i in interactions if i.user_id == user_id}
-    for pid in already_seen:
-        place_score[pid] = place_score.get(pid, 0.0) - 5.0
-
     place_map = {p.id: p for p in places}
-    
-    # Filter by distance if location is provided
-    if latitude is not None and longitude is not None:
-        filtered_scores = {}
-        for pid, score in place_score.items():
-            p = place_map.get(pid)
-            if p:
-                dist = haversine_miles(latitude, longitude, p.latitude, p.longitude)
-                if dist <= 50.0:
-                    filtered_scores[pid] = score
-        place_score = filtered_scores
 
-    sorted_places = sorted(place_score.items(), key=lambda x: x[1], reverse=True)
+    # 1. Content-based: how much does THIS user like each category?
+    affinity = _category_affinity(target_user, interactions, place_map)
+    max_aff  = max([v for v in affinity.values() if v > 0], default=1.0)
 
-    results = []
-    for pid, score in sorted_places[:top_k]:
-        place = place_map.get(pid)
-        if place:
-            results.append(_place_to_dict(place, score))
+    # 2. Collaborative: places liked by like-minded users (empty when no peers).
+    peer_boost = _collaborative_boost(user_id, users, interactions, places)
 
-    if len(results) < top_k:
-        results += _fallback_recommendations(target_user, places, interactions, latitude, longitude, top_k - len(results), exclude={r["id"] for r in results})
+    # 3. Never recommend a place the user has already interacted with.
+    already_seen = {i.place_id for i in interactions if i.user_id == user_id}
 
-    return results[:top_k]
+    scored = []
+    for p in places:
+        if p.id in already_seen:
+            continue
 
+        # Distance: hard-filter at 50mi, and keep a proximity signal (1 near → 0 far).
+        proximity = 1.0
+        if latitude is not None and longitude is not None:
+            dist = haversine_miles(latitude, longitude, p.latitude, p.longitude)
+            if dist > 50.0:
+                continue
+            proximity = max(0.0, 1.0 - dist / 50.0)
 
-def _fallback_recommendations(user: User, places: List[Place], interactions: List[Interaction],
-                               latitude: float = None, longitude: float = None,
-                               top_k: int = TOP_K, exclude: set = None) -> List[Dict[str, Any]]:
-    """Return interest-filtered places ranked by overall interaction count, filtered by distance."""
-    exclude = exclude or set()
-    interests = set(user.interests or [])
+        cat_aff     = affinity.get(p.category, 0.0)
+        aff_norm    = max(0.0, cat_aff / max_aff) if max_aff > 0 else 0.0     # 0..1 taste fit
+        rating      = p.rating if p.rating is not None else 3.5
+        # Spread ratings: map 3.0–5.0 → 0–1 so "good" and "great" actually differ.
+        rating_norm = max(0.0, min(1.0, (rating - 3.0) / 2.0))
 
-    # Map category → interaction count
-    cat_count: Dict[str, int] = {}
-    for inter in interactions:
-        pass  # tallied below
+        # Ranking: taste leads, but proximity is weighted strongly (this is a
+        # "near me" discovery app) — a close spot beats a far one of similar taste.
+        score = aff_norm * 3.0 + proximity * 2.5 + rating_norm * 1.2 + peer_boost.get(p.id, 0.0) * 0.5
 
-    place_inter_count: Dict[int, int] = {}
-    for inter in interactions:
-        place_inter_count[inter.place_id] = place_inter_count.get(inter.place_id, 0) + 1
+        # 0–100 match with genuine spread: taste 50%, closeness 30%, quality 20%.
+        match = 100.0 * (0.50 * aff_norm + 0.30 * proximity + 0.20 * rating_norm)
+        match = max(35.0, min(99.0, match))
 
-    filtered = [
-        p for p in places
-        if p.id not in exclude and p.category in interests
-    ]
-    
-    # Filter by distance if location provided
-    if latitude is not None and longitude is not None:
-        filtered = [
-            p for p in filtered
-            if haversine_miles(latitude, longitude, p.latitude, p.longitude) <= 50.0
-        ]
+        scored.append((p, score, match))
 
-    sorted_filtered = sorted(filtered, key=lambda p: (place_inter_count.get(p.id, 0), p.rating or 0), reverse=True)
-    return [_place_to_dict(p, place_inter_count.get(p.id, 0)) for p in sorted_filtered[:top_k]]
+    scored.sort(key=lambda x: x[1], reverse=True)
+    return [_place_to_dict(p, score, match) for p, score, match in scored[:top_k]]
 
 
-def _place_to_dict(place: Place, score: float = 0.0) -> Dict[str, Any]:
+def _category_affinity(user: User, interactions: List[Interaction],
+                       place_map: Dict[int, Place]) -> Dict[str, float]:
+    """Score every interest category by the user's stated + behavioural affinity."""
+    affinity = {c: 0.0 for c in ALL_INTERESTS}
+    # Stated preference: onboarding interests give a baseline.
+    for c in (user.interests or []):
+        if c in affinity:
+            affinity[c] += 2.0
+    # Revealed preference: the user's own actions on places in each category.
+    for i in interactions:
+        if i.user_id == user.id:
+            p = place_map.get(i.place_id)
+            if p and p.category in affinity:
+                affinity[p.category] += ACTION_WEIGHTS.get(i.action_type, 1.0)
+    return affinity
+
+
+def _collaborative_boost(user_id: int, users: List[User],
+                         interactions: List[Interaction], places: List[Place]) -> Dict[int, float]:
+    """KMeans-cluster users and return per-place score boosts from cluster-mates.
+
+    Returns an empty dict when there aren't enough users/interactions to cluster,
+    so the content-based signal cleanly stands alone for a single user.
+    """
+    if len(users) < 2 or not interactions:
+        return {}
+    try:
+        feature_df = _build_user_features(users, interactions, places)
+        if feature_df.shape[0] < 2 or user_id not in set(feature_df.index):
+            return {}
+
+        n_clusters = min(N_CLUSTERS, feature_df.shape[0])
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+        labels = kmeans.fit_predict(feature_df.values)
+
+        index_list   = list(feature_df.index)
+        target_label = labels[index_list.index(user_id)]
+        peers = {
+            uid for uid, lbl in zip(index_list, labels)
+            if lbl == target_label and uid != user_id
+        }
+
+        boost: Dict[int, float] = {}
+        for i in interactions:
+            if i.user_id in peers:
+                boost[i.place_id] = boost.get(i.place_id, 0.0) + ACTION_WEIGHTS.get(i.action_type, 1.0)
+        return boost
+    except Exception as exc:  # clustering is best-effort; never break recs over it
+        logger.warning("Collaborative boost skipped: %s", exc)
+        return {}
+
+
+def _place_to_dict(place: Place, score: float = 0.0, match: float = None) -> Dict[str, Any]:
     return {
         "id":              place.id,
         "google_place_id": place.google_place_id,
@@ -216,6 +230,7 @@ def _place_to_dict(place: Place, score: float = 0.0) -> Dict[str, Any]:
         "photo_url":       place.photo_url,
         "is_open":         place.is_open,
         "recommendation_score": round(score, 2),
+        "match_score":     round(match) if match is not None else None,
     }
 
 

@@ -16,6 +16,11 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost/geopulse")
 
+# Managed hosts (Render, Railway, Heroku, Fly) often hand out a "postgres://" URL,
+# but SQLAlchemy 2.x only accepts the "postgresql://" scheme.
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

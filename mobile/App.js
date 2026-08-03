@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { StatusBar, View, ActivityIndicator, StyleSheet } from 'react-native';
+import { StatusBar, View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -27,6 +27,8 @@ const Placeholder = ({ name }) => (
     <Text style={{ color: '#FFF' }}>{name} Screen coming soon...</Text>
   </View>
 );
+
+const SocialScreen = () => <Placeholder name="Social" />;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Bottom tab navigator (Pulse, Map, Social, Profile)
@@ -60,7 +62,7 @@ function MainTabs() {
     >
       <Tab.Screen name="PULSE"   component={PulseScreen} />
       <Tab.Screen name="MAP"     component={HomeMapScreen} />
-      <Tab.Screen name="SOCIAL"  component={() => <Placeholder name="Social" />} />
+      <Tab.Screen name="SOCIAL"  component={SocialScreen} />
       <Tab.Screen name="PROFILE" component={ProfileScreen} />
     </Tab.Navigator>
   );

@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, Image, TouchableOpacity,
-  Animated, Dimensions, ActivityIndicator, Platform,
+  Animated, Dimensions, ActivityIndicator, Platform, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -14,19 +14,23 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { COLORS, FONTS, SHADOWS, INTEREST_META } from '../utils/theme';
-import { getRecommendations, getNearbyPlaces } from '../utils/api';
-import { getCurrentPosition } from '../utils/location';
+import { getRecommendations, getNearbyPlaces, recordInteraction } from '../utils/api';
+import { getCurrentPosition, requestLocationPermission, getDistanceMiles, formatDistance } from '../utils/location';
 
 const { width } = Dimensions.get('window');
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function PulseScreen() {
-  const [userName, setUserName] = useState('Explorer');
-  const [locationName, setLocationName] = useState('Roorkee'); // Dynamic from GPS in future
-  const [places, setPlaces] = useState([]);
+  const [userName, setUserName] = useState('');
+  const [userId, setUserId] = useState(null);
+  const [places, setPlaces] = useState([]);           // personalized recommendations ("For You")
+  const [nearbyPlaces, setNearbyPlaces] = useState([]); // all nearby places (for category tabs)
+  const [interests, setInterests] = useState([]);     // user's chosen interest categories
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState('Cafe');
+  const [userLoc, setUserLoc] = useState(null);
+  const [activeCategory, setActiveCategory] = useState('For You');
+  const [savedIds, setSavedIds] = useState(new Set());
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -37,10 +41,21 @@ export default function PulseScreen() {
   const init = async () => {
     try {
       const uid = await AsyncStorage.getItem('user_id');
+      setUserId(uid);
       const name = await AsyncStorage.getItem('user_name');
       if (name) setUserName(name);
+      const storedInterests = await AsyncStorage.getItem('interests');
+      if (storedInterests) { try { setInterests(JSON.parse(storedInterests)); } catch {} }
 
+      await requestLocationPermission();
       const pos = await getCurrentPosition();
+      setUserLoc(pos);
+
+      // Fetch places for THIS location — powers both the category tabs and gives
+      // the recommender something near the user to rank.
+      const nearby = await getNearbyPlaces(uid, pos.latitude, pos.longitude);
+      setNearbyPlaces(nearby.places || []);
+
       const data = await getRecommendations(uid, pos.latitude, pos.longitude);
       setPlaces(data.recommendations || []);
     } catch (err) {
@@ -50,10 +65,40 @@ export default function PulseScreen() {
     }
   };
 
+  // Time-appropriate greeting (Good morning / afternoon / evening).
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 18) return 'Good afternoon';
+    return 'Good evening';
+  })();
+
+  // SAVE — record a "save" interaction (also strengthens future recommendations).
+  const handleSave = async (item) => {
+    setSavedIds(prev => new Set(prev).add(item.id));
+    if (userId) {
+      try { await recordInteraction(userId, item.id, 'save'); } catch {/* offline is fine */}
+    }
+  };
+
+  // LET'S GO — record a "visit" and open turn-by-turn directions in Maps.
+  const handleGo = async (item) => {
+    if (userId) {
+      try { await recordInteraction(userId, item.id, 'visit'); } catch {/* offline is fine */}
+    }
+    const label = encodeURIComponent(item.name || 'Destination');
+    const url = Platform.OS === 'ios'
+      ? `http://maps.apple.com/?daddr=${item.latitude},${item.longitude}&q=${label}`
+      : `google.navigation:q=${item.latitude},${item.longitude}`;
+    Linking.openURL(url).catch(() => {});
+  };
+
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={{ flex: 1 }}>
-        <Text style={styles.greetingText}>Good evening, <Text style={styles.locationText}>{locationName}</Text></Text>
+        <Text style={styles.greetingText}>
+          {greeting}{userName ? <>, <Text style={styles.locationText}>{userName}</Text></> : ''}
+        </Text>
       </View>
       <TouchableOpacity style={styles.logoBtn}>
         <Icon name="lightning-bolt" size={24} color="#000" />
@@ -66,7 +111,7 @@ export default function PulseScreen() {
       <FlatList
         horizontal
         showsHorizontalScrollIndicator={false}
-        data={['Cafe', 'Nightlife', 'Adventure', 'Sports', 'Events']}
+        data={['For You', ...interests]}
         keyExtractor={item => item}
         renderItem={({ item }) => (
           <TouchableOpacity 
@@ -95,6 +140,13 @@ export default function PulseScreen() {
       outputRange: [0, 0, 0, 50],
     });
 
+    // Real values from the recommendation engine — not placeholders.
+    const match = item.match_score != null ? item.match_score : null;
+    const dist  = userLoc && item.latitude != null
+      ? getDistanceMiles(userLoc.latitude, userLoc.longitude, item.latitude, item.longitude)
+      : null;
+    const isSaved = savedIds.has(item.id);
+
     return (
       <Animated.View style={[styles.card, { transform: [{ translateY }] }]}>
         <View style={styles.imageWrapper}>
@@ -109,12 +161,16 @@ export default function PulseScreen() {
           
           {/* Badges */}
           <View style={styles.topBadges}>
-            <View style={styles.matchBadge}>
-              <Text style={styles.matchText}>{Math.floor(80 + Math.random() * 19)}% MATCH</Text>
-            </View>
-            <View style={styles.distBadge}>
-              <Text style={styles.distText}>{(Math.random() * 5).toFixed(1)} mi</Text>
-            </View>
+            {match != null && (
+              <View style={styles.matchBadge}>
+                <Text style={styles.matchText}>{match}% MATCH</Text>
+              </View>
+            )}
+            {dist != null && (
+              <View style={styles.distBadge}>
+                <Text style={styles.distText}>{formatDistance(dist)}</Text>
+              </View>
+            )}
           </View>
 
           {/* Card Content Overlay */}
@@ -127,10 +183,14 @@ export default function PulseScreen() {
             <Text style={styles.placeAddress}>{item.address?.split(',').slice(0, 2).join(', ')}</Text>
             
             <View style={styles.btnRow}>
-              <TouchableOpacity style={styles.saveBtn}>
-                <Text style={styles.saveBtnText}>SAVE</Text>
+              <TouchableOpacity
+                style={[styles.saveBtn, isSaved && styles.saveBtnActive]}
+                onPress={() => handleSave(item)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.saveBtnText}>{isSaved ? 'SAVED ✓' : 'SAVE'}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.goBtn}>
+              <TouchableOpacity style={styles.goBtn} onPress={() => handleGo(item)} activeOpacity={0.85}>
                 <LinearGradient
                   colors={[COLORS.primary, COLORS.primaryDark]}
                   style={styles.goBtnGradient}
@@ -159,10 +219,19 @@ export default function PulseScreen() {
         {renderHeader()}
         {renderCategories()}
         <FlatList
-          data={places}
+          data={activeCategory === 'For You'
+            ? places
+            : nearbyPlaces.filter(p => p.category === activeCategory)}
           keyExtractor={item => item.id.toString()}
           renderItem={renderPlaceCard}
           contentContainerStyle={{ paddingBottom: 100 }}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>
+              {activeCategory === 'For You'
+                ? 'Finding spots near you…'
+                : `No ${activeCategory.toLowerCase()} places found nearby.`}
+            </Text>
+          }
           showsVerticalScrollIndicator={false}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -188,6 +257,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  emptyText: {
+    color: '#8A8A8A',
+    fontSize: 15,
+    textAlign: 'center',
+    marginTop: 60,
   },
   header: {
     flexDirection: 'row',
@@ -336,6 +411,10 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  saveBtnActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: 'rgba(0, 212, 255, 0.15)',
   },
   saveBtnText: {
     color: '#FFF',

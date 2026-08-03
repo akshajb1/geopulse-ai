@@ -5,7 +5,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
   Animated, Dimensions, Alert, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,6 +24,7 @@ const INTERESTS = ['Cafe', 'Restaurant', 'Adventure', 'Sports', 'Music', 'Nightl
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function OnboardingScreen({ navigation }) {
+  const [name,     setName]       = useState('');
   const [selected, setSelected]   = useState(new Set());
   const [loading,  setLoading]    = useState(false);
 
@@ -70,9 +71,11 @@ export default function OnboardingScreen({ navigation }) {
         } catch {/* no-op */}
       }
 
+      const trimmedName = name.trim();
       const deviceId = `device-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const response = await createOrUpdateUser({
         device_id:  deviceId,
+        name:       trimmedName || null,
         interests:  Array.from(selected),
         latitude:   lat,
         longitude:  lng,
@@ -80,6 +83,7 @@ export default function OnboardingScreen({ navigation }) {
 
       await AsyncStorage.setItem('user_id',   String(response.user_id));
       await AsyncStorage.setItem('device_id', deviceId);
+      if (trimmedName) await AsyncStorage.setItem('user_name', trimmedName);
       await AsyncStorage.setItem('interests', JSON.stringify(Array.from(selected)));
 
       navigation.replace('Main');
@@ -107,6 +111,19 @@ export default function OnboardingScreen({ navigation }) {
               Tell us what you love.{'\n'}We'll find the best spots nearby.
             </Text>
           </Animated.View>
+
+          {/* Name */}
+          <Text style={styles.sectionLabel}>What's your name?</Text>
+          <TextInput
+            style={styles.nameInput}
+            placeholder="Your name"
+            placeholderTextColor="#5A6B85"
+            value={name}
+            onChangeText={setName}
+            autoCapitalize="words"
+            returnKeyType="done"
+            maxLength={40}
+          />
 
           {/* Interest grid */}
           <Text style={styles.sectionLabel}>Choose your interests</Text>
@@ -191,6 +208,7 @@ const styles = StyleSheet.create({
   title:        { fontSize: 34, fontWeight: '800', color: '#FFF', textAlign: 'center', letterSpacing: -0.5 },
   subtitle:     { fontSize: 16, color: '#A0AEC0', textAlign: 'center', marginTop: 10, marginBottom: 32, lineHeight: 24 },
   sectionLabel: { fontSize: 13, fontWeight: '700', color: COLORS.primary, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 16 },
+  nameInput:    { backgroundColor: '#111', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)', borderRadius: 16, paddingVertical: 16, paddingHorizontal: 18, fontSize: 16, color: '#FFF', marginBottom: 28 },
   grid:         { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   chip:         { borderRadius: 16, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)', overflow: 'hidden', backgroundColor: '#111' },
   chipGradient: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 18, gap: 8 },

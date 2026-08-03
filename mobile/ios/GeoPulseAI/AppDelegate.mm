@@ -21,10 +21,14 @@
 
 - (NSURL *)getBundleURL
 {
+  NSURL *localBundle = [[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"];
+  if (localBundle) {
+    return localBundle;
+  }
 #if DEBUG
   return [[RCTBundleURLProvider sharedSettings] jsBundleURLForBundleRoot:@"index"];
 #else
-  return [[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"];
+  return localBundle;
 #endif
 }
 

@@ -102,6 +102,15 @@ INTEREST_TO_GOOGLE_TYPE = {
     "Events":     "tourist_attraction",
 }
 
+# Primary Google types that mean the place is fundamentally something else
+# (a hotel, museum, store…) even if it happens to contain a cafe/restaurant.
+# Used to stop those from being mis-recommended as a food/venue result.
+# None of our searched types appear here, so real matches are never dropped.
+NON_DESTINATION_PRIMARY = {
+    "lodging", "museum", "hospital", "school", "university", "stadium",
+    "airport", "spa", "shopping_mall", "store", "supermarket", "gas_station",
+}
+
 
 async def fetch_google_places(lat: float, lng: float, place_type: str) -> list:
     """Query the Google Places Nearby Search API and return raw results."""
@@ -333,7 +342,11 @@ async def get_nearby_places(
 
     if cached_places:
         results = _filter_and_sort_places(cached_places, latitude, longitude)
-        return {"places": results, "total": len(results), "source": "cache"}
+        # Only trust the cache if it actually has places NEAR this location.
+        # Otherwise the cache is for a different area (e.g. a previous city) and
+        # we must fetch fresh results for where the user actually is.
+        if results:
+            return {"places": results, "total": len(results), "source": "cache"}
 
     # ── Fetch fresh from Google Places ─────────────────────────────────────
     all_places: List[Place] = []
@@ -341,6 +354,16 @@ async def get_nearby_places(
         google_type = INTEREST_TO_GOOGLE_TYPE.get(interest, "point_of_interest")
         raw_results = await fetch_google_places(latitude, longitude, google_type)
         for raw in raw_results:
+            # Google returns several `types` per place (a museum-with-a-cafe is
+            # ['museum','cafe',...]; a hotel-with-a-restaurant is ['lodging',...]).
+            # Keep a place only if it's actually tagged the type we searched AND
+            # its PRIMARY type isn't a fundamentally different kind of venue — so a
+            # museum/hotel/store never gets recommended as a cafe or restaurant.
+            raw_types = raw.get("types", [])
+            if google_type != "point_of_interest":
+                primary = raw_types[0] if raw_types else ""
+                if google_type not in raw_types or primary in NON_DESTINATION_PRIMARY:
+                    continue
             place = upsert_place(db, raw, interest)
             all_places.append(place)
 

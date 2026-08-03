@@ -8,14 +8,14 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Animated,
   Dimensions, ActivityIndicator, Platform,
 } from 'react-native';
-import MapView, { Marker, Circle, Callout, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Circle, Callout } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { COLORS, INTEREST_META, SHADOWS } from '../utils/theme';
-import { getNearbyPlaces, getRecommendations, recordInteraction } from '../utils/api';
+import { getNearbyPlaces, getRecommendations, recordInteraction, updateLocation } from '../utils/api';
 import { getCurrentPosition, requestLocationPermission, getDistanceMiles, formatDistance, watchPosition } from '../utils/location';
 
 const { width, height } = Dimensions.get('window');
@@ -184,7 +184,6 @@ export default function HomeMapScreen() {
       {/* Map */}
       <MapView
         ref={mapRef}
-        provider={PROVIDER_GOOGLE}
         style={StyleSheet.absoluteFillObject}
         customMapStyle={DARK_MAP_STYLE}
         initialRegion={{
