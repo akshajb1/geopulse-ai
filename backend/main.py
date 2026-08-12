@@ -192,6 +192,29 @@ def health_check():
     return {"status": "ok", "service": "GeoPulse AI API", "version": "1.0.0"}
 
 
+@app.get("/support", response_class=HTMLResponse, tags=["Legal"])
+def support():
+    """Public support page — required for the App Store listing."""
+    return """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeoPulse AI — Support</title>
+<style>body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+max-width:640px;margin:48px auto;padding:0 20px;line-height:1.6;color:#1a1a1a}
+h1{font-size:1.7rem}a{color:#0a84ff}</style></head>
+<body>
+<h1>GeoPulse AI — Support</h1>
+<p>Need help with GeoPulse AI? We're happy to assist.</p>
+<h2>Contact</h2>
+<p>Email us at <a href="mailto:columbacreations1@gmail.com">columbacreations1@gmail.com</a> and we'll get back to you as soon as we can.</p>
+<h2>Common questions</h2>
+<p><strong>The app shows no places.</strong> Make sure Location is allowed (Settings &rsaquo; GeoPulse AI &rsaquo; Location) and that you have an internet connection.</p>
+<p><strong>How are recommendations made?</strong> GeoPulse ranks nearby places by how well they match the interests you chose and the spots you save or visit.</p>
+<p><strong>Delete my data.</strong> Email the address above and we'll remove your profile.</p>
+<p>See also our <a href="/privacy">Privacy Policy</a>.</p>
+</body></html>"""
+
+
 @app.get("/privacy", response_class=HTMLResponse, tags=["Legal"])
 def privacy_policy():
     """Public privacy policy — required for the App Store listing."""
