@@ -206,7 +206,7 @@ h1{font-size:1.7rem}a{color:#0a84ff}</style></head>
 <h1>GeoPulse AI — Support</h1>
 <p>Need help with GeoPulse AI? We're happy to assist.</p>
 <h2>Contact</h2>
-<p>Email us at <a href="mailto:akshaj353@gmail.com">akshaj353@gmail.com</a> and we'll get back to you as soon as we can.</p>
+<p>Email us at <a href="mailto:columbacreations1@gmail.com">columbacreations1@gmail.com</a> and we'll get back to you as soon as we can.</p>
 <h2>Common questions</h2>
 <p><strong>The app shows no places.</strong> Make sure Location is allowed (Settings &rsaquo; GeoPulse AI &rsaquo; Location) and that you have an internet connection.</p>
 <p><strong>How are recommendations made?</strong> GeoPulse ranks nearby places by how well they match the interests you chose and the spots you save or visit.</p>
