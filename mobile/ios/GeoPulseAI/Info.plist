@@ -35,7 +35,11 @@
 		<true/>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>GeoPulse uses your location to find places nearby.</string>
+	<string>GeoPulse uses your location to find and rank places near you, such as nearby cafés, restaurants, and nightlife.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>GeoPulse uses your location to find and rank places near you, such as nearby cafés, restaurants, and nightlife.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>GeoPulse uses your location to find and rank places near you, such as nearby cafés, restaurants, and nightlife.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>AntDesign.ttf</string>

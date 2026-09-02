@@ -14,7 +14,9 @@ const BASE_URL = 'https://geopulse-api-y9gt.onrender.com';
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
+  // Generous timeout so a cold-started backend (free-tier hosts can take
+  // ~30s to wake from sleep) never fails the request and shows an error.
+  timeout: 60000,
   headers: { 'Content-Type': 'application/json' },
 });
 
