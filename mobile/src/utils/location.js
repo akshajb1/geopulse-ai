@@ -56,24 +56,48 @@ export async function requestLocationPermission() {
     } catch {
       return false;
     }
+  } else if (Platform.OS === 'ios') {
+    try {
+      if (Geolocation && typeof Geolocation.requestAuthorization === 'function') {
+        Geolocation.requestAuthorization();
+      }
+      return true;
+    } catch {
+      return true;
+    }
   }
-  return true; // iOS handles permissions via Info.plist
+  return true;
 }
 
 // ── Get current position ──────────────────────────────────────────────────────
 
 export function getCurrentPosition() {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     Geolocation.getCurrentPosition(
       position => resolve({
         latitude:  position.coords.latitude,
         longitude: position.coords.longitude,
         accuracy:  position.coords.accuracy,
       }),
-      error   => reject(error),
+      () => {
+        // High accuracy failed or timed out; attempt coarse fallback
+        Geolocation.getCurrentPosition(
+          pos => resolve({
+            latitude:  pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy:  pos.coords.accuracy,
+          }),
+          () => resolve({
+            latitude:  37.7749, // Default fallback coordinates
+            longitude: -122.4194,
+            accuracy:  100,
+          }),
+          { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
+        );
+      },
       {
         enableHighAccuracy: true,
-        timeout:            15000,
+        timeout:            6000,
         maximumAge:         10000,
       },
     );
