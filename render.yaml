@@ -1,5 +1,8 @@
-# Render Blueprint — provisions the GeoPulse API + a Postgres database.
-# Deploy: push this repo to GitHub, then on render.com choose New → Blueprint.
+# Render Blueprint — GeoPulse API web service.
+# The database is an external managed Postgres (Neon). Its connection string
+# is set manually as the DATABASE_URL env var in the Render dashboard, so it
+# is NOT provisioned here (Render's free Postgres expires/deletes after ~30
+# days, which took the app down; Neon's free tier is persistent).
 services:
   - type: web
     name: geopulse-api
@@ -10,12 +13,6 @@ services:
     healthCheckPath: /
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: geopulse-db
-          property: connectionString
+        sync: false   # set this yourself in the Render dashboard (Neon connection string)
       - key: GOOGLE_PLACES_API_KEY
         sync: false   # set this yourself in the Render dashboard (your key)
-
-databases:
-  - name: geopulse-db
-    plan: free
