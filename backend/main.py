@@ -366,41 +366,24 @@ def update_location(payload: UpdateLocationRequest, db: Session = Depends(get_db
 # ---------------------------------------------------------------------------- #
 @app.get("/nearby-places", tags=["Places"], summary="Get nearby places matching user interests")
 async def get_nearby_places(
-    user_id:   int   = Query(..., description="User ID"),
-    latitude:  float = Query(..., description="Current latitude"),
-    longitude: float = Query(..., description="Current longitude"),
+    user_id:   Optional[str] = Query(None, description="User ID"),
+    latitude:  float         = Query(..., description="Current latitude"),
+    longitude: float         = Query(..., description="Current longitude"),
     db: Session = Depends(get_db),
 ):
-    """
-    Returns places within 25 miles of the given location that match the user's interests.
-    Results are cached in the database (TTL = 2 hours).
+    parsed_id = 0
+    if user_id:
+        try:
+            import re
+            digits = re.sub(r'\D', '', str(user_id))
+            parsed_id = int(digits) if digits else 0
+        except Exception:
+            parsed_id = 0
 
-    Example response:
-    ```json
-    {
-      "places": [
-        {
-          "id": 1,
-          "name": "Blue Bottle Coffee",
-          "category": "Cafe",
-          "distance_miles": 0.42,
-          "latitude": 37.7751,
-          "longitude": -122.4137,
-          "rating": 4.5,
-          "is_open": true
-        }
-      ],
-      "total": 1
-    }
-    ```
-    """
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    interests = user.interests or []
-    if not interests:
-        return {"places": [], "total": 0, "message": "No interests set for user"}
+    user = db.query(User).filter(User.id == parsed_id).first() if parsed_id > 0 else None
+    interests = user.interests if (user and user.interests) else [
+        "Cafe", "Restaurant", "Adventure", "Sports", "Music", "Nightlife", "Events"
+    ]
 
     # ── Serve from cache if fresh ──────────────────────────────────────────
     cache_cutoff = datetime.utcnow() - timedelta(hours=CACHE_TTL_HOURS)
@@ -521,7 +504,7 @@ def record_interaction(payload: InteractionRequest, db: Session = Depends(get_db
 # ---------------------------------------------------------------------------- #
 @app.get("/recommendations/{user_id}", tags=["Recommendations"], summary="Get ML-powered place recommendations")
 def get_user_recommendations(
-    user_id: int, 
+    user_id: str, 
     latitude: float = Query(None, description="Current latitude"),
     longitude: float = Query(None, description="Current longitude"),
     db: Session = Depends(get_db)
@@ -531,11 +514,16 @@ def get_user_recommendations(
     Falls back to interest-filtered popular places when data is sparse.
     If latitude/longitude provided, filters Results to 50 miles.
     """
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    parsed_id = 0
+    if user_id:
+        try:
+            import re
+            digits = re.sub(r'\D', '', str(user_id))
+            parsed_id = int(digits) if digits else 0
+        except Exception:
+            parsed_id = 0
 
-    recs = get_recommendations(user_id=user_id, db=db, latitude=latitude, longitude=longitude)
+    recs = get_recommendations(user_id=parsed_id, db=db, latitude=latitude, longitude=longitude)
     return {"user_id": user_id, "recommendations": recs, "count": len(recs)}
 
 

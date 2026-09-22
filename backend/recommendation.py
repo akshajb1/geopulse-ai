@@ -118,7 +118,7 @@ def get_recommendations(user_id: int, db: Session, latitude: float = None, longi
 
     target_user = db.query(User).filter(User.id == user_id).first()
     if not target_user:
-        return []
+        target_user = User(id=user_id or 0, interests=ALL_INTERESTS)
 
     place_map = {p.id: p for p in places}
 
