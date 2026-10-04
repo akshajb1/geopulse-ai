@@ -422,9 +422,12 @@ async def get_nearby_places(
 
     # ── Stamp the location of this fetch on the user object ─────────────────
     # This is the reference point used by /update-location to detect movement.
-    user.last_fetch_lat = latitude
-    user.last_fetch_lng = longitude
-    db.commit()
+    # Guard against anonymous / fallback user IDs (user is None) so we never
+    # crash with AttributeError — those requests just skip the stamp.
+    if user:
+        user.last_fetch_lat = latitude
+        user.last_fetch_lng = longitude
+        db.commit()
 
     results = _filter_and_sort_places(all_places, latitude, longitude)
     return {"places": results, "total": len(results), "source": "google_api"}
