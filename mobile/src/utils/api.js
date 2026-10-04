@@ -39,6 +39,14 @@ api.interceptors.response.use(
   },
 );
 
+// Helper to safely parse user IDs for API endpoints expecting integers
+const sanitizeUserId = (id) => {
+  if (!id) return 0;
+  if (typeof id === 'number') return id;
+  const parsed = parseInt(String(id).replace(/\D/g, ''), 10);
+  return isNaN(parsed) ? 0 : parsed;
+};
+
 // ── Endpoints ─────────────────────────────────────────────────────────────────
 
 /**
@@ -52,15 +60,17 @@ export const createOrUpdateUser = async (payload) => {
  * Update user's current GPS location.
  */
 export const updateLocation = async (userId, latitude, longitude) => {
-  return api.post('/update-location', { user_id: userId, latitude, longitude });
+  const safeId = sanitizeUserId(userId);
+  return api.post('/update-location', { user_id: safeId, latitude, longitude });
 };
 
 /**
  * Get nearby places matching user interests.
  */
 export const getNearbyPlaces = async (userId, latitude, longitude) => {
+  const safeId = sanitizeUserId(userId);
   return api.get('/nearby-places', {
-    params: { user_id: userId, latitude, longitude },
+    params: { user_id: safeId, latitude, longitude },
   });
 };
 
@@ -69,8 +79,9 @@ export const getNearbyPlaces = async (userId, latitude, longitude) => {
  * @param {string} actionType - 'click' | 'visit' | 'save' | 'dismiss'
  */
 export const recordInteraction = async (userId, placeId, actionType) => {
+  const safeId = sanitizeUserId(userId);
   return api.post('/interaction', {
-    user_id:     userId,
+    user_id:     safeId,
     place_id:    placeId,
     action_type: actionType,
   });
@@ -80,7 +91,8 @@ export const recordInteraction = async (userId, placeId, actionType) => {
  * Get ML-powered recommendations for the user.
  */
 export const getRecommendations = async (userId, latitude, longitude) => {
-  return api.get(`/recommendations/${userId}`, {
+  const safeId = sanitizeUserId(userId);
+  return api.get(`/recommendations/${safeId}`, {
     params: { latitude, longitude }
   });
 };
@@ -96,7 +108,8 @@ export const getAnalytics = async () => {
  * Get user profile.
  */
 export const getUserProfile = async (userId) => {
-  return api.get(`/users/${userId}`);
+  const safeId = sanitizeUserId(userId);
+  return api.get(`/users/${safeId}`);
 };
 
 export default api;
