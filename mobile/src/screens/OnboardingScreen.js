@@ -75,27 +75,33 @@ export default function OnboardingScreen({ navigation }) {
 
       const trimmedName = name.trim();
       const deviceId = `device-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const fallbackId = String(Math.floor(Date.now() % 100000000));
       let userId = null;
 
       try {
-        const response = await createOrUpdateUser({
+        // Quick 6s timeout race for backend registration to keep UX snappy
+        const apiPromise = createOrUpdateUser({
           device_id:  deviceId,
           name:       trimmedName || null,
           interests:  Array.from(selected),
           latitude:   lat,
           longitude:  lng,
         });
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Backend setup timeout')), 6000)
+        );
+
+        const response = await Promise.race([apiPromise, timeoutPromise]);
         if (response && response.user_id) {
           userId = String(response.user_id);
         }
       } catch (apiErr) {
         console.warn('Backend setup notice:', apiErr);
-        // Fallback user ID to ensure reviewer / offline user is never blocked
-        userId = `local-${Date.now()}`;
+        userId = fallbackId;
       }
 
       if (!userId) {
-        userId = `local-${Date.now()}`;
+        userId = fallbackId;
       }
 
       await AsyncStorage.setItem('user_id',   userId);
@@ -107,7 +113,7 @@ export default function OnboardingScreen({ navigation }) {
     } catch (err) {
       // In worst-case unexpected failure, ensure graceful navigation
       try {
-        const fallbackId = `local-${Date.now()}`;
+        const fallbackId = String(Math.floor(Date.now() % 100000000));
         await AsyncStorage.setItem('user_id', fallbackId);
         await AsyncStorage.setItem('interests', JSON.stringify(Array.from(selected)));
         navigation.replace('Main');

@@ -73,34 +73,61 @@ export async function requestLocationPermission() {
 
 export function getCurrentPosition() {
   return new Promise((resolve) => {
-    Geolocation.getCurrentPosition(
-      position => resolve({
-        latitude:  position.coords.latitude,
-        longitude: position.coords.longitude,
-        accuracy:  position.coords.accuracy,
-      }),
-      () => {
-        // High accuracy failed or timed out; attempt coarse fallback
-        Geolocation.getCurrentPosition(
-          pos => resolve({
-            latitude:  pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            accuracy:  pos.coords.accuracy,
-          }),
-          () => resolve({
-            latitude:  37.7749, // Default fallback coordinates
-            longitude: -122.4194,
-            accuracy:  100,
-          }),
-          { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
-        );
-      },
-      {
-        enableHighAccuracy: true,
-        timeout:            6000,
-        maximumAge:         10000,
-      },
-    );
+    let resolved = false;
+
+    const safeResolve = (coords) => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timerId);
+        resolve(coords);
+      }
+    };
+
+    // Hard 3.5s safety net: guarantee the promise ALWAYS resolves
+    const timerId = setTimeout(() => {
+      safeResolve({
+        latitude:  37.7749, // Default fallback coordinates (San Francisco)
+        longitude: -122.4194,
+        accuracy:  100,
+      });
+    }, 3500);
+
+    try {
+      Geolocation.getCurrentPosition(
+        position => safeResolve({
+          latitude:  position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy:  position.coords.accuracy,
+        }),
+        () => {
+          // Coarse accuracy fallback
+          Geolocation.getCurrentPosition(
+            pos => safeResolve({
+              latitude:  pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              accuracy:  pos.coords.accuracy,
+            }),
+            () => safeResolve({
+              latitude:  37.7749,
+              longitude: -122.4194,
+              accuracy:  100,
+            }),
+            { enableHighAccuracy: false, timeout: 2500, maximumAge: 60000 }
+          );
+        },
+        {
+          enableHighAccuracy: true,
+          timeout:            3000,
+          maximumAge:         10000,
+        },
+      );
+    } catch {
+      safeResolve({
+        latitude:  37.7749,
+        longitude: -122.4194,
+        accuracy:  100,
+      });
+    }
   });
 }
 
