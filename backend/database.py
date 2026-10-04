@@ -16,18 +16,20 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost/geopulse")
 
-# Managed hosts (Render, Railway, Heroku, Fly) often hand out a "postgres://" URL,
-# but SQLAlchemy 2.x only accepts the "postgresql://" scheme.
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+# Normalize the connection URL so it ALWAYS uses the psycopg2 driver we ship
+# (see requirements.txt). Managed hosts hand out assorted schemes:
+#   - "postgres://"             (Render/Heroku legacy)
+#   - "postgresql+psycopg://"   (Neon / SQLAlchemy snippets -> psycopg v3, NOT installed)
+# make_url parses any of them; we force the driver to psycopg2 and drop the
+# "channel_binding" query option that some libpq builds reject.
+from sqlalchemy.engine import make_url  # noqa: E402
 
-# Neon (and SQLAlchemy connection snippets) often hand out a
-# "postgresql+psycopg://" URL, which selects the psycopg (v3) driver. We ship
-# psycopg2, so force the default driver to avoid "No module named 'psycopg'".
-if DATABASE_URL.startswith("postgresql+psycopg://"):
-    DATABASE_URL = DATABASE_URL.replace("postgresql+psycopg://", "postgresql://", 1)
+_url = make_url(DATABASE_URL).set(drivername="postgresql+psycopg2")
+_query = {k: v for k, v in _url.query.items() if k != "channel_binding"}
+_query.setdefault("sslmode", "require")
+_url = _url.set(query=_query)
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+engine = create_engine(_url, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
