@@ -21,6 +21,12 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:password@localho
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
+# Neon (and SQLAlchemy connection snippets) often hand out a
+# "postgresql+psycopg://" URL, which selects the psycopg (v3) driver. We ship
+# psycopg2, so force the default driver to avoid "No module named 'psycopg'".
+if DATABASE_URL.startswith("postgresql+psycopg://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql+psycopg://", "postgresql://", 1)
+
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
